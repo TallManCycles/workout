@@ -5,14 +5,22 @@ const routes = [
   {
     path: '/',
     name: 'log',
-    component: () => import('../components/LogComponent.vue')
+    component: () => import('../pages/Log.vue')
   },
   {
     path: '/workouts',
     name: 'workouts',
-    component: () => import('../components/WorkoutsComponent.vue')
+    component: () => import('../pages/Workouts.vue')
+  },
+  {
+    path: '/workouts/:id',
+    name: 'workout',
+    component: () => import('../pages/Workout.vue'),
+    props: true
   }
 ]
+
+
 
 const router = createRouter({
   history: createWebHistory(),
