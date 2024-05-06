@@ -17,6 +17,12 @@ const routes = [
     name: 'workout',
     component: () => import('../pages/Workout.vue'),
     props: true
+  },
+  {
+    path: '/exercise/:description',
+    name: 'exercise',
+    component: () => import('../pages/Exercise.vue'),
+    props: true
   }
 ]
 
