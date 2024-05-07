@@ -23,6 +23,11 @@ const routes = [
     name: 'exercise',
     component: () => import('../pages/Exercise.vue'),
     props: true
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('../pages/Settings.vue')
   }
 ]
 

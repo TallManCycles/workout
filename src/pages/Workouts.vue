@@ -5,10 +5,10 @@
     <v-alert v-if="alert" type="error" class="mt-3" closable="true" @click.close="this.alert = false">
         Please select a workout before starting.
     </v-alert>
-    <v-btn color="primary" large block class="mt-5" @click="start">
+    <v-btn color="success" large block class="mt-5" @click="start">
         Start
     </v-btn>
-    <v-btn color="success" large block class="mt-5">
+    <v-btn color="secondary" large block class="mt-5">
         Create New Workout
     </v-btn>
 </template>

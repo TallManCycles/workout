@@ -34,12 +34,10 @@
             Save and Continue
         </v-btn>
         <v-bottom-sheet v-model="showTimer">
-            <v-card class="text-center">
+            <v-card class="text-center" @click="showTimer = !showTimer" link>
                 <v-card-text>
-                    <v-btn variant="text" @click="showTimer = !showTimer">
-                        close
-                    </v-btn>
-                    <div>Rest: {{ restTimer }} secs</div>
+                    <h1>Rest Timer</h1>
+                    <h2>Remaining: {{ restTimer }} secs</h2>
                 </v-card-text>
             </v-card>
         </v-bottom-sheet>
