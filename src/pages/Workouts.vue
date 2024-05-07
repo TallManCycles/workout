@@ -14,6 +14,8 @@
 </template>
 
 <script lang="ts">
+import { supabase } from '../data/supabase';
+
 export default {
     data() {
         return {
@@ -21,6 +23,18 @@ export default {
             workouts: ['Workout 1', 'Workout 2', 'Workout 3'],
             alert: false
         }
+    },
+    async mounted() {
+        const { data, error } = await supabase
+            .from('savedworkout')
+            .select('*');
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        this.workouts = data.map((workout: any) => workout.description);
     },
     methods: {
         start() {
