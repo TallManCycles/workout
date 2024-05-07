@@ -35,6 +35,11 @@ const routes = [
     component: () => import('../pages/FinishWorkout.vue')
   },
   {
+    path: '/statistics',
+    name: 'statistics',
+    component: () => import('../pages/Statistics.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('../pages/NotFound.vue')

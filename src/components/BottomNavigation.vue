@@ -5,7 +5,7 @@
 
       <span>Log</span>
     </v-btn>
-    <v-btn value="progress" to="/progress">
+    <v-btn value="progress" to="/statistics">
       <v-icon>mdi-chart-line-variant</v-icon>
 
       <span>Stats</span>
