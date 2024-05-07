@@ -1,11 +1,11 @@
 <template>
     <v-main>
         <h1 class="text-center">{{ description }}</h1>
-        <v-list lines="two">
+        <v-list :style="{ maxHeight: '80vh' }">
             <v-list-item v-for="(set, index) in sets" :key="index">
                 <v-list-item-content>
                     <v-list-item-title>
-                        <h2>Set {{ index + 1 }}</h2>
+                        <h2>Set # {{ index + 1 }}</h2>
                     </v-list-item-title>
                     <v-list-item-subtitle>
                         <v-row>
@@ -25,7 +25,11 @@
                     </v-list-item-subtitle>
                 </v-list-item-content>
             </v-list-item>
+            <v-list-item>
+                <v-btn color="secondary" class="mt-5" @click="addSet">+ Set</v-btn>
+            </v-list-item>
         </v-list>
+
         <v-btn color="success" large block class="mt-5" @click="saveSet">
             Save and Continue
         </v-btn>
@@ -35,7 +39,7 @@
                     <v-btn variant="text" @click="showTimer = !showTimer">
                         close
                     </v-btn>
-                    <div>{{ restTimer }}</div>
+                    <div>Rest: {{ restTimer }} secs</div>
                 </v-card-text>
             </v-card>
         </v-bottom-sheet>
@@ -99,13 +103,24 @@ export default defineComponent({
             this.showTimer = true;
             this.restTimer = 30;
         },
+        addSet() {
+            //add a new set that contains the same reps, weight, and rir as the last set
+            const lastSet = this.sets[this.sets.length - 1];
+            this.sets.push({
+                complete: false,
+                reps: lastSet.reps,
+                weight: lastSet.weight,
+                rir: lastSet.rir
+            });
+        }
     },
     watch: {
         showTimer: {
             handler(value) {
                 if (value) {
                     this.timerInterval = setInterval(() => {
-                        this.restTimer--;
+                        if (this.restTimer > 0)
+                            this.restTimer--;
                     }, 1000);
                 } else {
                     clearInterval(this.timerInterval);
