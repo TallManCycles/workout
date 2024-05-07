@@ -28,6 +28,16 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: () => import('../pages/Settings.vue')
+  },
+  {
+    path: '/finish',
+    name: 'finish',
+    component: () => import('../pages/FinishWorkout.vue')
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('../pages/NotFound.vue')
   }
 ]
 
