@@ -19,7 +19,7 @@ const routes = [
     props: true
   },
   {
-    path: '/exercise/:description',
+    path: '/exercise/:id',
     name: 'exercise',
     component: () => import('../pages/Exercise.vue'),
     props: true

@@ -1,6 +1,7 @@
 <template>
-    <h1 class="text-center">{{ id }}</h1>
-    <v-list lines="two">
+    <h1 class="text-center">{{ workoutDescription }}</h1>
+    <v-skeleton-loader v-if="isLoading" type="list-item-two-line"></v-skeleton-loader>
+    <v-list lines="two" v-else>
         <v-list-item v-for="(exercise, index) in exercises" :key="index">
 
             <template v-slot:prepend>
@@ -14,13 +15,14 @@
             </template>
 
 
-            <v-list-item-content @click="openExercise(exercise.name)">
-                <v-list-item-title>{{ exercise.name }}</v-list-item-title>
+            <v-list-item-content @click="openExercise(exercise.id)">
+                <v-list-item-title>{{ exercise.exercises.description }}</v-list-item-title>
                 <v-list-item-subtitle>Sets: {{ exercise.sets }} RIR: {{ exercise.rir }}</v-list-item-subtitle>
             </v-list-item-content>
         </v-list-item>
     </v-list>
-    <v-btn color="success" block @click="dialog = true">Finish workout</v-btn>
+    <v-btn color="success" block @click="toggleWorkout">{{ workoutStarted ? 'Finish Workout' : ' Start Workout'
+        }}</v-btn>
     <v-dialog v-model="dialog" width="auto">
         <v-card max-width="400" prepend-icon="mdi-update"
             text="Are you sure you want to finish the workout? You will not be able to make any more changes after this point"
@@ -33,7 +35,9 @@
     </v-dialog>
 </template>
 
-<script>
+<script lang="ts">
+import { supabase } from '../data/supabase';
+
 export default {
     props: {
         id: {
@@ -43,24 +47,72 @@ export default {
     },
     data() {
         return {
-            exercises: [
-                { id: 1, name: 'Bench Press', sets: 5, rir: 2 },
-                { id: 2, name: 'Shoulder Press', sets: 3, rir: 3 },
-                { id: 3, name: 'Squat', sets: 4, rir: 1 },
-                { id: 4, name: 'Deadlift', sets: 3, rir: 2 },
-                { id: 5, name: 'Pull-up', sets: 3, rir: 3 },
-                { id: 6, name: 'Dumbbell Curl', sets: 4, rir: 2 }
-            ],
-            dialog: false
+            workoutDescription: '',
+            exercises: [] as [],
+            dialog: false,
+            workoutStarted: false,
+            isLoading: false
         }
     },
+    async mounted() {
+        this.isLoading = true;
+        await this.getWorkout();
+        await this.getWorkoutDetails();
+        this.isLoading = false;
+    },
+    unmounted() {
+        //warn the user if they try to leave the page without finishing the workout
+
+        if (this.workoutStarted) {
+            alert('are you sure you want to leave?')
+        }
+
+    },
     methods: {
-        openExercise(name) {
-            this.$router.push({ name: 'exercise', params: { description: name } });
+        openExercise(id) {
+            this.$router.push({ name: 'exercise', params: { id: id } });
+        },
+        toggleWorkout() {
+            if (!this.workoutStarted) {
+                this.workoutStarted = !this.workoutStarted;
+                return;
+            }
+
+            this.dialog = true;
         },
         finishWorkout() {
             this.dialog = false;
             this.$router.push({ name: 'finish' });
+        },
+        async getWorkout() {
+            const { data, error } = await supabase
+                .from('savedworkout')
+                .select('*')
+                .eq('id', this.id);
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            this.workoutDescription = data[0].description;
+        },
+        async getWorkoutDetails() {
+            const { data, error } = await supabase
+                .from('savedworkoutdetail')
+                .select(`
+                    id,
+                    exercises (description),
+                    sets,
+                    repsinreserve`)
+                .eq('savedworkoutid', this.id);
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            this.exercises = data;
         }
     }
 }
