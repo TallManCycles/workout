@@ -23,6 +23,7 @@
     </v-list>
     <v-btn color="success" block @click="toggleWorkout">{{ workoutStarted ? 'Finish Workout' : ' Start Workout'
         }}</v-btn>
+    <v-btn color="outline" v-if="!workoutStarted" block @click="back">Back</v-btn>
     <v-dialog v-model="dialog" width="auto">
         <v-card max-width="400" prepend-icon="mdi-update"
             text="Are you sure you want to finish the workout? You will not be able to make any more changes after this point"
@@ -96,6 +97,9 @@ export default {
             }
 
             this.workoutDescription = data[0].description;
+        },
+        back() {
+            this.$router.back();
         },
         async getWorkoutDetails() {
             const { data, error } = await supabase

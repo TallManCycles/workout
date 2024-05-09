@@ -101,7 +101,7 @@ export default defineComponent({
                     sets,
                     weight,
                     repsinreserve`)
-                .eq('exerciseid', this.id);
+                .eq('id', this.id);
 
             if (error || data.length === 0) {
                 console.error(error);
