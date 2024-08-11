@@ -53,6 +53,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { supabase } from '../data/supabase';
+import { activeWorkoutStore } from '../stores/activeWorkout';
 
 export default defineComponent({
     props: {
@@ -72,12 +73,60 @@ export default defineComponent({
         }
     },
     methods: {
-        saveSet() {
+        async saveSet() {
+
+            const workoutStore = activeWorkoutStore();
+
+            const workoutId = workoutStore.getWorkoutId();
+
+            //if the sets have ids, update the existing sets
+
+            for (let i = 0; i < this.sets.length; i++) {
+                if (this.sets[i].id) {
+                    const {error} = await supabase
+                        .from('exerciselog')
+                        .update({
+                            reps: this.sets[i].reps,
+                            weight: this.sets[i].weight,
+                            repsinreserve: this.sets[i].rir,
+                            complete: this.sets[i].complete
+                        })
+                        .eq('id', this.sets[i].id);
+
+                    if (error) {
+                        alert('An error occurred while saving the set');
+                        console.error(error);
+                        return;
+                    }
+                    continue;
+                } else {
+                    //save the set to the database
+                    const {error} = await supabase
+                    .from('exerciselog')
+                    .insert({
+                        workoutid: workoutId,
+                        exerciseid: this.id,
+                        reps: this.sets[i].reps,
+                        weight: this.sets[i].weight,
+                        repsinreserve: this.sets[i].rir,
+                        complete: this.sets[i].complete
+                    });
+
+                    if (error) {
+                        alert('An error occurred while saving the set');
+                        console.error(error);
+                        return;
+                    }
+                }
+            }            
+            
+
+            //navigate back to the previous page
             this.$router.back()
         },
         startTimer() {
             this.showTimer = true;
-            this.restTimer = 30;
+            this.restTimer = 90;
         },
         addSet() {
             //add a new set that contains the same reps, weight, and rir as the last set
@@ -93,7 +142,59 @@ export default defineComponent({
             this.$router.back();
         },
         async loadExercise() {
-            const { data, error } = await supabase
+
+            const workoutStore = activeWorkoutStore();
+
+            // workout has started, so load the saved sets
+            if (workoutStore.workoutState()) {              
+                const { data: saved, error: saveError } = await supabase
+                    .from('exerciselog')
+                    .select(`
+                        id,
+                        workoutid,
+                        exerciseid,
+                        reps,
+                        repsinreserve,
+                        weight,
+                        complete`)
+                    .eq('exerciseid', this.id)
+                    .eq('workoutid', workoutStore.getWorkoutId());
+
+                if (saveError) {
+                    console.error(saveError);
+                    return;
+                }
+
+                if (saved.length > 0) {
+                    for (let i = 0; i < saved.length; i++) {
+                        this.sets.push({
+                            id: saved[i].id,
+                            complete: saved[i].complete,
+                            reps: saved[i].reps,
+                            weight: saved[i].weight,
+                            rir: saved[i].repsinreserve
+                        });
+                    }
+
+                    const {data: exercise, error} = await supabase
+                        .from('exercises')
+                        .select('description')
+                        .eq('id', this.id);
+
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+
+                    this.workoutDescription = exercise[0].description;
+                    
+                    return;                
+                }
+            }
+
+            //none exist, so load the template          
+
+            const { data: template, error } = await supabase
                 .from('savedworkoutdetail')
                 .select(`
                     id,
@@ -103,27 +204,24 @@ export default defineComponent({
                     repsinreserve`)
                 .eq('id', this.id);
 
-            if (error || data.length === 0) {
+            if (error) {
                 console.error(error);
                 return;
             }
 
             //for the number of sets in the exercise, create a new set object.
 
-            for (let i = 0; i < data[0].sets; i++) {
+            for (let i = 0; i < template[0].sets; i++) {
                 this.sets.push({
                     complete: false,
                     reps: null,
-                    weight: data[0].weight,
-                    rir: data[0].repsinreserve
+                    weight: template[0].weight,
+                    rir: template[0].repsinreserve
                 });
             }
 
-            console.log(this.sets);
 
-
-
-            this.workoutDescription = data[0].exercises.description;
+            this.workoutDescription = template[0].exercises.description;
         }
     },
     watch: {

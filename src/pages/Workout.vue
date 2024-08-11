@@ -17,7 +17,7 @@
 
             <v-list-item-content @click="openExercise(exercise.id)">
                 <v-list-item-title>{{ exercise.exercises.description }}</v-list-item-title>
-                <v-list-item-subtitle>Sets: {{ exercise.sets }} RIR: {{ exercise.rir }}</v-list-item-subtitle>
+                <v-list-item-subtitle>Sets: {{ exercise.sets }} RIR: {{ exercise.repsinreserve }}</v-list-item-subtitle>
             </v-list-item-content>
         </v-list-item>
     </v-list>
@@ -111,7 +111,7 @@ export default {
             const { data, error } = await supabase
                 .from('savedworkout')
                 .select('*')
-                .eq('id', this.id);
+                .eq('id', this.id)
 
             if (error) {
                 console.error(error);
@@ -131,7 +131,8 @@ export default {
                     exercises (description),
                     sets,
                     repsinreserve`)
-                .eq('savedworkoutid', this.id);
+                .eq('savedworkoutid', this.id)
+                .order('order', { ascending: true });
 
             if (error) {
                 console.error(error);
