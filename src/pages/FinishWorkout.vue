@@ -18,13 +18,13 @@
 </template>
 
 <script lang="ts">
-import { userWorkoutStore } from '../stores/workout';
+import { activeWorkoutStore } from '../stores/activeWorkout';
 import {supabase } from '../data/supabase';
 export default {
     methods: {
         async finish() {
 
-            const workoutStore = userWorkoutStore();
+            const workoutStore = activeWorkoutStore();
 
             // save the workout data to the database
             const { error } = await supabase.from('workout').update({
@@ -38,6 +38,9 @@ export default {
                 alert('There was an error saving your workout data. Please try again.');
                 console.error('Error saving workout data:', error);
             } else {
+                //set the workout state to false
+                workoutStore.updateWorkout(false);
+                
                 this.$router.push({ name: 'workouts' });
             }
         }

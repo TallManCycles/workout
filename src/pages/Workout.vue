@@ -39,7 +39,9 @@
 <script lang="ts">
 import ts from 'typescript';
 import { supabase } from '../data/supabase';
-import { userWorkoutStore } from '../stores/workout';
+import { activeWorkoutStore } from '../stores/activeWorkout';
+
+const workoutState = null;
 
 export default {
     props: {
@@ -58,9 +60,13 @@ export default {
         }
     },
     async mounted() {
+        const workoutStore = activeWorkoutStore();
         this.isLoading = true;
         await this.getWorkout();
         await this.getWorkoutDetails();
+        if (workoutStore !== null) {
+            this.workoutStarted = workoutStore.workoutState();
+        }
         this.isLoading = false;
     },
     methods: {
@@ -68,10 +74,13 @@ export default {
             this.$router.push({ name: 'exercise', params: { id: id } });
         },
         async toggleWorkout() {
+
+            const workoutStore = activeWorkoutStore();
+
             if (!this.workoutStarted) {
                 this.workoutStarted = !this.workoutStarted;
 
-                const workoutStore = userWorkoutStore();
+                workoutStore.updateWorkout(this.workoutStarted);
 
                 //supabase set the workout description, and set the date to now.
                 const { data, error } = await supabase
