@@ -37,7 +37,9 @@
 </template>
 
 <script lang="ts">
+import ts from 'typescript';
 import { supabase } from '../data/supabase';
+import { userWorkoutStore } from '../stores/workout';
 
 export default {
     props: {
@@ -61,21 +63,32 @@ export default {
         await this.getWorkoutDetails();
         this.isLoading = false;
     },
-    unmounted() {
-        //warn the user if they try to leave the page without finishing the workout
-
-        if (this.workoutStarted) {
-            alert('are you sure you want to leave?')
-        }
-
-    },
     methods: {
         openExercise(id) {
             this.$router.push({ name: 'exercise', params: { id: id } });
         },
-        toggleWorkout() {
+        async toggleWorkout() {
             if (!this.workoutStarted) {
                 this.workoutStarted = !this.workoutStarted;
+
+                const workoutStore = userWorkoutStore();
+
+                //supabase set the workout description, and set the date to now.
+                const { data, error } = await supabase
+                    .from('workout')
+                    .insert({
+                        description: this.workoutDescription,
+                        date: new Date()
+                    })
+                    .select();
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                workoutStore.setWorkoutId(data[0].id);
+
                 return;
             }
 
