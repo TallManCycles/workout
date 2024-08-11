@@ -53,6 +53,8 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { supabase } from '../data/supabase';
+import { activeWorkoutStore } from '../stores/activeWorkout';
+import { ActiveExercise, Exercise } from '../types/index';
 
 export default defineComponent({
     props: {
@@ -64,7 +66,7 @@ export default defineComponent({
     data() {
         return {
             workoutDescription: '',
-            sets: [] as [],
+            sets: [] as Array<Exercise>,
             showTimer: false,
             restTimer: 30,
             timerInterval: 1000,
@@ -73,6 +75,17 @@ export default defineComponent({
     },
     methods: {
         saveSet() {
+            const activeWorkouts = activeWorkoutStore();
+
+            const activeExericse: ActiveExercise | null = activeWorkouts.getActiveExercise(this.id)
+
+            if (activeWorkouts && activeExericse) {
+                activeWorkouts.updateActiveExercise(this.sets);
+            } else {
+                
+                activeWorkouts.addActiveExercise(this.sets);
+            }
+            
             this.$router.back()
         },
         startTimer() {
@@ -93,6 +106,40 @@ export default defineComponent({
             this.$router.back();
         },
         async loadExercise() {
+
+            const activeWorkouts = activeWorkoutStore();
+
+            const exerciseState : ActiveExercise | null = activeWorkouts.getActiveExercise(this.id);
+
+            if (activeWorkouts && exerciseState) {
+
+                //foreach set in the exercise, create a new set object.
+                for (let i = 0; i < exerciseState.sets; i++) {
+                    this.sets.push({
+                        complete: exerciseState[i].complete,
+                        reps: exerciseState[i].reps,
+                        weight: exerciseState[i].weight,
+                        rir: exerciseState[i].repsinreserve
+                    });
+                }
+
+                //get the exercise description from the exercises table by id
+
+                const { data, error } = await supabase
+                    .from('exercises')
+                    .select('description')
+                    .eq('id', this.id);
+
+                if (error || data.length === 0) {
+                    console.error(error);
+                    return;
+                }
+
+                this.workoutDescription = data[0].description;
+
+                return;
+            }   
+
             const { data, error } = await supabase
                 .from('savedworkoutdetail')
                 .select(`
@@ -112,6 +159,7 @@ export default defineComponent({
 
             for (let i = 0; i < data[0].sets; i++) {
                 this.sets.push({
+                    id: data[0].id,
                     complete: false,
                     reps: null,
                     weight: data[0].weight,
@@ -120,8 +168,6 @@ export default defineComponent({
             }
 
             console.log(this.sets);
-
-
 
             this.workoutDescription = data[0].exercises.description;
         }
