@@ -15,7 +15,12 @@ export const activeWorkoutStore = defineStore('workout', {
      * Indicates whether the workout has started.
      * @type {boolean}
      */
-    workoutStarted: false
+    workoutStarted: false,
+
+    /**
+     * The current exercises in the workout.
+     */
+    currentExercises: []
   }),
   actions: {
     /**
@@ -48,6 +53,36 @@ export const activeWorkoutStore = defineStore('workout', {
      */
     workoutState() {
       return this.workoutStarted;
+    },
+
+    /**
+     * Sets the current exercises in the workout.
+     * @param {Array} exercises - The exercises in the workout.
+     */
+    setCurrentExercises(exercises: Array<any>) {
+      this.currentExercises = exercises;
+    },
+
+    /**
+     * Adds an exercise to the workout.
+     * @param {Object} exercise - The exercise to add.
+     */
+    addExercise(exercise: any) {
+      this.currentExercises.push(exercise);
+    },
+
+    /**
+     * Gets the current exercises in the workout.
+     * @returns {Array} The exercises in the workout.
+     */
+    getCurrentExercises() {
+      return this.currentExercises;
+    },
+
+    clearWorkout() {
+      this.workoutid = null;
+      this.workoutStarted = false;
+      this.currentExercises = [];
     }
   },
 });

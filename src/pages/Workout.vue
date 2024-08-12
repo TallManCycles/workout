@@ -21,9 +21,20 @@
             </v-list-item-content>
         </v-list-item>
     </v-list>
-    <v-btn color="success" block @click="toggleWorkout">{{ workoutStarted ? 'Finish Workout' : ' Start Workout'
+    <v-select v-if="addingExercise"
+        v-model="selectedAdditionalExercise"
+        :items="additionalExercises"
+        item-title="description"
+        label="Select Exercise"
+        return-object
+    ></v-select>
+    <!-- create a dropdown that contains the workout description and workout id -->
+    <v-btn color="secondary" v-if="workoutStarted" class="mb-5" @click="addExercise">{{addExerciseLabel}}    
+    </v-btn>
+    <v-btn color="success" block class="mb-5" @click="toggleWorkout">{{ workoutStarted ? 'Finish Workout' : ' Start Workout'
         }}</v-btn>
     <v-btn color="outline" v-if="!workoutStarted" block @click="back">Back</v-btn>
+    <v-btn append-icon="mdi-delete" v-if="workoutStarted" block @click="deteleDialog = true">Delete Workout</v-btn>
     <v-dialog v-model="dialog" width="auto">
         <v-card max-width="400" prepend-icon="mdi-update"
             text="Are you sure you want to finish the workout? You will not be able to make any more changes after this point"
@@ -34,14 +45,21 @@
             </template>
         </v-card>
     </v-dialog>
+    <v-dialog v-model="deteleDialog" width="auto">
+        <v-card max-width="400" prepend-icon="mdi-delete-alert"
+            text="Are you sure you want to delete this workout? You will not be able to recover your changes"
+            title="Delete Workout">
+            <template v-slot:actions>
+                <v-btn text="Cancel" @click="deteleDialog = false"></v-btn>
+                <v-btn text="Ok" @click="deleteWorkout"></v-btn>
+            </template>
+        </v-card>
+    </v-dialog>
 </template>
 
 <script lang="ts">
-import ts from 'typescript';
 import { supabase } from '../data/supabase';
 import { activeWorkoutStore } from '../stores/activeWorkout';
-
-const workoutState = null;
 
 export default {
     props: {
@@ -55,8 +73,21 @@ export default {
             workoutDescription: '',
             exercises: [] as [],
             dialog: false,
+            deteleDialog: false,
             workoutStarted: false,
-            isLoading: false
+            isLoading: false,
+            addingExercise: false,
+            selectedAdditionalExercise: null,
+            additionalExercises: []
+        }
+    },
+    computed: {
+        addExerciseLabel() {
+            if (this.addingExercise) {
+                return 'Add';
+            } else {
+                return '+ Exercise';
+            }
         }
     },
     async mounted() {
@@ -98,6 +129,8 @@ export default {
 
                 workoutStore.setWorkoutId(data[0].id);
 
+                workoutStore.setCurrentExercises(this.exercises);
+
                 return;
             }
 
@@ -106,6 +139,35 @@ export default {
         finishWorkout() {
             this.dialog = false;
             this.$router.push({ name: 'finish' });
+        },
+        async deleteWorkout() {
+            //delete all items from exerciselog that have this workout id.
+            const workoutStore = activeWorkoutStore();
+
+            const {data , error} = await supabase
+                .from('exerciselog')
+                .delete()
+                .eq('workoutid', workoutStore.getWorkoutId());
+
+            if (error) {
+                alert(error);
+                return;
+            }
+
+            //delete the workout from the wporkout table
+            const {data: workoutData, error: workoutError} = await supabase
+                .from('workout')
+                .delete()
+                .eq('id', workoutStore.getWorkoutId());
+
+            if (workoutError) {
+                alert(workoutError);
+                return;
+            }
+
+            workoutStore.clearWorkout();
+
+            this.$router.back();
         },
         async getWorkout() {
             const { data, error } = await supabase
@@ -124,6 +186,13 @@ export default {
             this.$router.back();
         },
         async getWorkoutDetails() {
+            const workoutStore = activeWorkoutStore();
+
+            if (workoutStore.workoutState()) {
+                this.exercises = workoutStore.getCurrentExercises();
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('savedworkoutdetail')
                 .select(`
@@ -140,6 +209,64 @@ export default {
             }
 
             this.exercises = data;
+        },
+        async addExercise() {
+            // if we are adding an exercise, then we need to add the exercise to the workout
+            if (this.addingExercise) {
+                if (this.selectedAdditionalExercise) {
+                    const workoutStore = activeWorkoutStore();
+
+                    const newExericse = {
+                        id: this.selectedAdditionalExercise.id,
+                        exercises: {
+                            description: this.selectedAdditionalExercise.description,
+                        },
+                        sets: 3,
+                        repsinreserve: 2,
+                        order: this.exercises.length + 1
+                    }
+
+                    workoutStore.addExercise(newExericse);
+                    this.addingExercise = false;
+
+
+                    //add this exercise into the exerciselog so that the next screen can pull the details
+
+                    const { data, error } = await supabase
+                        .from('exerciselog')
+                        .insert({
+                            workoutid: workoutStore.getWorkoutId(),
+                            exerciseid: newExericse.id,
+                            reps: 0,
+                            repsinreserve: 0,
+                            weight: 0,
+                            complete: false
+                        })
+                        .select();
+
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+
+                    return;
+                }
+            }
+
+            // if we are not adding an exercise, then we need to show the dropdown
+            this.addingExercise = true;
+
+            const { data, error } = await supabase
+                .from('exercises')
+                .select('*');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+            
+            this.additionalExercises = data;
+
         }
     }
 }
