@@ -229,8 +229,12 @@ export default defineComponent({
             handler(value) {
                 if (value) {
                     this.timerInterval = setInterval(() => {
-                        if (this.restTimer > 0)
+                        if (this.restTimer > 0) {
                             this.restTimer--;
+                        } else {
+                            clearInterval(this.timerInterval);
+                            this.showTimer = false;
+                        }
                     }, 1000);
                 } else {
                     clearInterval(this.timerInterval);
