@@ -19,6 +19,12 @@ const routes = [
     props: true
   },
   {
+    path: '/newworkout/:id',
+    name: 'newworkout',
+    component: () => import('../pages/NewWorkout.vue'),
+    props: true
+  },
+  {
     path: '/exercise/:id',
     name: 'exercise',
     component: () => import('../pages/Exercise.vue'),

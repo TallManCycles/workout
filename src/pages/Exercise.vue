@@ -67,7 +67,7 @@ export default defineComponent({
             workoutDescription: '',
             sets: [] as [],
             showTimer: false,
-            restTimer: 30,
+            restTimer: 90,
             timerInterval: 1000,
             isLoading: true
         }
@@ -126,7 +126,6 @@ export default defineComponent({
         },
         startTimer() {
             this.showTimer = true;
-            this.restTimer = 90;
         },
         addSet() {
             //add a new set that contains the same reps, weight, and rir as the last set
@@ -140,6 +139,20 @@ export default defineComponent({
         },
         back() {
             this.$router.back();
+        },
+        async loadRestInterval() {
+
+            const { data, error } = await supabase
+                .from('usersettings')
+                .select('restInterval')
+                .single();
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            this.restTimer = data.restInterval;
         },
         async loadExercise() {
 
@@ -246,6 +259,7 @@ export default defineComponent({
     async created() {
         this.isLoading = true;
         await this.loadExercise();
+        await this.loadRestInterval();
         this.isLoading = false;
     }
 });

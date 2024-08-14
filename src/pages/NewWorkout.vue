@@ -28,21 +28,25 @@
         label="Select Exercise"
         return-object
     ></v-select>
-    <v-label class="pb-3">Approx time: {{ internalWorkoutMinutes }} minutes</v-label>
-    <!-- create a dropdown that contains the workout description and workout id -->
-    <v-btn color="secondary" v-if="workoutStarted" class="mb-5" @click="addExercise">{{addExerciseLabel}}    
+    <template v-if="addingExercise">
+        <div class="d-flex">
+            <v-text-field v-model="sets" label="Sets" type="number"></v-text-field>
+            <v-text-field class="pl-2" v-model="weight" label="Weight" type="number"></v-text-field>
+            <v-text-field class="pl-2" v-model="repsinreserve" label="Reps in Reserve" type="number" max="5"></v-text-field>
+        </div>
+    </template>
+    <v-btn color="secondary" class="mb-5" @click="addExercise">{{addExerciseLabel}}    
     </v-btn>
-    <v-btn color="success" block class="mb-5" @click="toggleWorkout">{{ workoutStarted ? 'Finish Workout' : ' Start Workout'
-        }}</v-btn>
-    <v-btn color="outline" v-if="!workoutStarted" block @click="back">Back</v-btn>
-    <v-btn append-icon="mdi-delete" v-if="workoutStarted" block @click="deteleDialog = true">Delete Workout</v-btn>
-    <v-dialog v-model="dialog" width="auto">
+    <v-btn color="success" block class="mb-5" @click="saveDialog = true">Save Workout</v-btn>
+    <v-btn color="red" append-icon="mdi-delete" class="mb-5" block @click="deteleDialog = true">Delete Workout</v-btn>
+    <v-btn color="outline" block @click="back">Back</v-btn>
+    <v-dialog v-model="saveDialog" width="auto">
         <v-card max-width="400" prepend-icon="mdi-update"
-            text="Are you sure you want to finish the workout? You will not be able to make any more changes after this point"
-            title="Finish Workout">
+            text="Are you sure you want to save the workout? You will not be able to make any more changes after this point"
+            title="Save Workout">
             <template v-slot:actions>
                 <v-btn text="Cancel" @click="dialog = false"></v-btn>
-                <v-btn text="Ok" @click="finishWorkout"></v-btn>
+                <v-btn text="Ok" @click="saveWorkout"></v-btn>
             </template>
         </v-card>
     </v-dialog>
@@ -73,14 +77,15 @@ export default {
         return {
             workoutDescription: '',
             exercises: [] as [],
-            dialog: false,
+            saveDialog: false,
             deteleDialog: false,
-            workoutStarted: false,
             isLoading: false,
             addingExercise: false,
             selectedAdditionalExercise: null,
             additionalExercises: [],
-            internalWorkoutMinutes: 0
+            sets: 3,
+            weight: 0,
+            repsinreserve: 2
         }
     },
     computed: {
@@ -95,85 +100,25 @@ export default {
     async mounted() {
         const workoutStore = activeWorkoutStore();
         this.isLoading = true;
+        
         await this.getWorkout();
         await this.getWorkoutDetails();
-        await this.workoutMinutes();
-        if (workoutStore !== null) {
-            this.workoutStarted = workoutStore.workoutState();
-        }
         this.isLoading = false;
     },
     methods: {
         openExercise(id) {
             this.$router.push({ name: 'exercise', params: { id: id } });
         },
-        async workoutMinutes() {
-            //foreach exercise in the workout, calculate the time it will take to complete the workout based on the sets and reps
-
-            const { data, error } = await supabase
-                .from('usersettings')
-                .select('restInterval')
-                .single();
-
-            if (error) {
-                console.error(error);
-                return;
-            }
-
-            const restSeconds = data.restInterval;
-
-            let totalMinutes = 0;
-
-            this.exercises.forEach(exercise => {
-                totalMinutes += exercise.sets + ((exercise.sets * restSeconds)/60);
-            });
-
-            this.internalWorkoutMinutes = totalMinutes;
-        },
-        async toggleWorkout() {
-
-            const workoutStore = activeWorkoutStore();
-
-            if (!this.workoutStarted) {
-                this.workoutStarted = !this.workoutStarted;
-
-                workoutStore.updateWorkout(this.workoutStarted);
-
-                //supabase set the workout description, and set the date to now.
-                const { data, error } = await supabase
-                    .from('workout')
-                    .insert({
-                        description: this.workoutDescription,
-                        date: new Date()
-                    })
-                    .select();
-
-                if (error) {
-                    console.error(error);
-                    return;
-                }
-
-                workoutStore.setWorkoutId(data[0].id);
-
-                workoutStore.setCurrentExercises(this.exercises);
-
-                return;
-            }
-
-            this.dialog = true;
-        },
-        finishWorkout() {
-            this.dialog = false;
-            this.$router.push({ name: 'finish' });
+        saveWorkout() {
+            this.saveDialog = false;
+            this.$router.push({ name: 'workouts' });
         },
         async deleteWorkout() {
             //delete all items from exerciselog that have this workout id.
-            const workoutStore = activeWorkoutStore();
-
             const {data , error} = await supabase
-                .from('exerciselog')
+                .from('savedworkoutdetail')
                 .delete()
-                .eq('workoutid', workoutStore.getWorkoutId());
+                .eq('savedworkoutid', this.id);
 
             if (error) {
                 alert(error);
@@ -182,16 +127,14 @@ export default {
 
             //delete the workout from the wporkout table
             const {data: workoutData, error: workoutError} = await supabase
-                .from('workout')
+                .from('savedworkout')
                 .delete()
-                .eq('id', workoutStore.getWorkoutId());
+                .eq('id', this.id);
 
             if (workoutError) {
                 alert(workoutError);
                 return;
             }
-
-            workoutStore.clearWorkout();
 
             this.$router.back();
         },
@@ -214,11 +157,6 @@ export default {
         async getWorkoutDetails() {
             const workoutStore = activeWorkoutStore();
 
-            if (workoutStore.workoutState()) {
-                this.exercises = workoutStore.getCurrentExercises();
-                return;
-            }
-
             const { data, error } = await supabase
                 .from('savedworkoutdetail')
                 .select(`
@@ -240,33 +178,17 @@ export default {
             // if we are adding an exercise, then we need to add the exercise to the workout
             if (this.addingExercise) {
                 if (this.selectedAdditionalExercise) {
-                    const workoutStore = activeWorkoutStore();
+                    //save the workout in the workoutdetail table
 
-                    const newExericse = {
-                        id: this.selectedAdditionalExercise.id,
-                        exercises: {
-                            description: this.selectedAdditionalExercise.description,
-                        },
-                        sets: 3,
-                        repsinreserve: 2,
-                        order: this.exercises.length + 1
-                    }
-
-                    workoutStore.addExercise(newExericse);
-                    this.addingExercise = false;
-
-
-                    //add this exercise into the exerciselog so that the next screen can pull the details
-
-                    const { data, error } = await supabase
-                        .from('exerciselog')
+                    const {data, error} = await supabase
+                        .from('savedworkoutdetail')
                         .insert({
-                            workoutid: workoutStore.getWorkoutId(),
-                            exerciseid: newExericse.id,
-                            reps: 0,
-                            repsinreserve: 0,
-                            weight: 0,
-                            complete: false
+                            savedworkoutid: this.id,
+                            exerciseid: this.selectedAdditionalExercise.id,
+                            sets: this.sets ? this.sets : null,
+                            repsinreserve: this.repsinreserve ? this.repsinreserve : null,
+                            weight: this.weight ? this.weight : null,
+                            order: this.exercises.length + 1
                         })
                         .select();
 
@@ -274,6 +196,12 @@ export default {
                         console.error(error);
                         return;
                     }
+
+                    if (data) {
+                        await this.getWorkoutDetails();
+                    }
+
+                    this.addingExercise = false;
 
                     return;
                 }
@@ -284,7 +212,8 @@ export default {
 
             const { data, error } = await supabase
                 .from('exercises')
-                .select('*');
+                .select('*')
+                .order('description', { ascending: true });
 
             if (error) {
                 console.error(error);
