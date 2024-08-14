@@ -69,7 +69,8 @@ export default defineComponent({
             showTimer: false,
             restTimer: 90,
             timerInterval: 1000,
-            isLoading: true
+            isLoading: true,
+            exerciseId: ''
         }
     },
     methods: {
@@ -105,7 +106,7 @@ export default defineComponent({
                     .from('exerciselog')
                     .insert({
                         workoutid: workoutId,
-                        exerciseid: this.id,
+                        exerciseid: this.exerciseid,
                         reps: this.sets[i].reps,
                         weight: this.sets[i].weight,
                         repsinreserve: this.sets[i].rir,
@@ -211,7 +212,7 @@ export default defineComponent({
                 .from('savedworkoutdetail')
                 .select(`
                     id,
-                    exercises (description),
+                    exercises (description, id),
                     sets,
                     weight,
                     repsinreserve`)
@@ -233,6 +234,7 @@ export default defineComponent({
                 });
             }
 
+            this.exerciseid = template[0].exercises.id;
 
             this.workoutDescription = template[0].exercises.description;
         }

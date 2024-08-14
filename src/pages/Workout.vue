@@ -28,7 +28,9 @@
         label="Select Exercise"
         return-object
     ></v-select>
-    <v-label class="pb-3">Approx time: {{ internalWorkoutMinutes }} minutes</v-label>
+    <div>
+        <v-label class="pb-3">Approx time: {{ internalWorkoutMinutes }} minutes</v-label>
+    </div>
     <!-- create a dropdown that contains the workout description and workout id -->
     <v-btn color="secondary" v-if="workoutStarted" class="mb-5" @click="addExercise">{{addExerciseLabel}}    
     </v-btn>

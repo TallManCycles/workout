@@ -2,6 +2,26 @@
     <v-main>
         <h1 class="text-center">Statistics</h1>
         <v-container>
+            <v-row justify="center">
+                <v-col cols="12" md="8">
+                    <v-card class="pa-4">
+                        <v-card-title class="headline">Sets Per Muscle Group</v-card-title>
+                        <v-card-text>
+                            <v-list>
+                                <v-list-item v-for="setPerMuscleGroup in setsPerMuscleGroup" :key="setPerMuscleGroup.muscleGroup">
+                                    <v-list-item-content class="d-flex justify-space-between">
+                                        <v-list-item-title>{{ setPerMuscleGroup.muscleGroup }}</v-list-item-title>
+                                        <v-list-item-subtitle>{{ setPerMuscleGroup.sets }}</v-list-item-subtitle>
+                                    </v-list-item-content>
+                                    <v-divider v-if="setPerMuscleGroup !== setsPerMuscleGroup[setsPerMuscleGroup.length - 1]"></v-divider>
+                                </v-list-item>
+                            </v-list>
+                        </v-card-text>
+                    </v-card>
+                </v-col>
+            </v-row>
+        </v-container>
+        <v-container>
             <v-row>
                 <v-col cols="12" md="6">
                     <v-select
@@ -15,38 +35,14 @@
                 </v-col>
             </v-row>
             <v-row v-if="exerciseLogs.length">
-                <v-col cols="12" v-for="log in exerciseLogs" :key="log.id">
+                <v-col cols="12" md="6">
                     <v-card>
-                        <v-card-title>{{ log.exercises.description }}</v-card-title>
+                        <v-card-title>Summary</v-card-title>
                         <v-card-text>
-                            <v-row>
-                                <v-col cols="6">
-                                    <v-list>
-                                        <v-list-item>
-                                            <v-list-item-content>
-                                                <v-list-item-title>Reps</v-list-item-title>
-                                                <v-list-item-subtitle>{{ log.reps }}</v-list-item-subtitle>
-                                            </v-list-item-content>
-                                        </v-list-item>
-                                        <v-list-item>
-                                            <v-list-item-content>
-                                                <v-list-item-title>Weight</v-list-item-title>
-                                                <v-list-item-subtitle>{{ log.weight }}</v-list-item-subtitle>
-                                            </v-list-item-content>
-                                        </v-list-item>
-                                    </v-list>
-                                </v-col>
-                                <v-col cols="6">
-                                    <v-list>
-                                        <v-list-item>
-                                            <v-list-item-content>
-                                                <v-list-item-title>Total Volume</v-list-item-title>
-                                                <v-list-item-subtitle>{{ calculateTotalVolume(log) }}</v-list-item-subtitle>
-                                            </v-list-item-content>
-                                        </v-list-item>
-                                    </v-list>
-                                </v-col>
-                            </v-row>
+                            <p>Exercises: {{ descriptionOfExercisesPerformed }}</p>
+                            <p>Total Sets: {{ totalSets }}</p>
+                            <p>Total Reps: {{ totalReps }}</p>
+                            <p>Total Weight: {{ totalWeight }} kg</p>                            
                         </v-card-text>
                     </v-card>
                 </v-col>
@@ -65,8 +61,24 @@ export default defineComponent({
         return {
             workoutDescriptions: [] as Array<{ id: string, description: string }>,
             selectedWorkout: null as string | null,
-            exerciseLogs: [] as Array<{ id: string, description: string, reps: number, weight: number}>
+            exerciseLogs: [] as Array<{ id: string, description: string, reps: number, weight: number}>,
+            setsPerMuscleGroup: [] as Array<{muscleGroup: string, sets: number}>
         };
+    },
+    computed: {
+        totalSets() {
+            return this.exerciseLogs.length;
+        },
+        totalReps() {
+            return this.exerciseLogs.reduce((total, log) => total + log.reps, 0);
+        },
+        totalWeight() {
+            return this.exerciseLogs.reduce((total, log) => total + log.weight, 0);
+        },
+        descriptionOfExercisesPerformed() {
+            const exerciseDescriptions = this.exerciseLogs.map(log => log.exercises.description);
+            return [...new Set(exerciseDescriptions)].join(', ');
+        }
     },
     methods: {
         async fetchWorkoutDescriptions() {
@@ -97,17 +109,32 @@ export default defineComponent({
             if (error) {
                 console.error(error);
                 return;
-            }        
+            }
 
             this.exerciseLogs = data;
         },
         calculateTotalVolume(log: any) {
             return parseInt(log.reps) * parseInt(log.weight);
             //return log.reduce((total, set) => total + (set.reps * set.weight), 0);
+        },
+        async getNumberOfSetsPerMuscleGroup() {
+            //returns sets, exerciseid, and musclegroup_description
+            const {data,error} = await supabase.rpc('get_last_week_exercise_with_description');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            this.setsPerMuscleGroup = data.map((d: any) => ({
+                muscleGroup: d.musclegroup_description,
+                sets: d.sets
+            }));
         }
     },
     async created() {
         await this.fetchWorkoutDescriptions();
+        await this.getNumberOfSetsPerMuscleGroup();
     }
 });
 </script>
