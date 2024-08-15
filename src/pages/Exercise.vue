@@ -3,6 +3,7 @@
         <v-skeleton-loader v-if="isLoading" type="list-item-two-line"></v-skeleton-loader>
         <div v-else>
             <h1 class="text-center">{{ workoutDescription }}</h1>
+
             <v-list :style="{ maxHeight: '80vh' }">
                 <v-list-item v-for="(set, index) in sets" :key="index">
                     <v-list-item-content>
@@ -38,6 +39,9 @@
             <v-btn color="outline" large block class="mt-5" @click="back">
                 Back
             </v-btn>
+            <v-btn color="outline" large block class="mt-5" @click="show1RM = true">
+                Stats
+            </v-btn>
             <v-bottom-sheet v-model="showTimer">
                 <v-card class="text-center" @click="showTimer = !showTimer" link>
                     <v-card-text>
@@ -47,6 +51,30 @@
                 </v-card>
             </v-bottom-sheet>
         </div>
+        <v-dialog v-model="show1RM" max-width="500">
+            <v-card>
+                <v-card-title>1RM Information</v-card-title>
+                <v-card-text>
+                    <p>Max Weight: {{ maxWeight }} kg</p>
+                    <p>Reps at Max Weight: {{ repsAtMaxWeight }}</p>
+                    <p>Max Reps: {{ maxReps }}</p>
+                    <p>Weight at Max Reps: {{ weightAtMaxReps }} kg</p>
+                    <br>
+                    <p>Estimated 1RM: {{ oneRepMax }} kg</p>
+                    <hr>
+                    <p>95%: {{ Math.round(oneRepMax * 0.95) }} kg</p>
+                    <p>90%: {{ Math.round(oneRepMax * 0.9) }} kg</p>
+                    <p>85%: {{ Math.round(oneRepMax * 0.85) }} kg</p>
+                    <p>80%: {{ Math.round(oneRepMax * 0.8) }} kg</p>
+                    <p>75%: {{ Math.round(oneRepMax * 0.75) }} kg</p>
+                    <p>70%: {{ Math.round(oneRepMax * 0.7) }} kg</p>
+                    <hr>
+                </v-card-text>
+                <v-card-actions>
+                    <v-btn color="primary" @click="show1RM = false">Close</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </v-main>
 </template>
 
@@ -70,7 +98,13 @@ export default defineComponent({
             restTimer: 90,
             timerInterval: 1000,
             isLoading: true,
-            exerciseId: ''
+            exerciseId: '',
+            maxWeight: 0,
+            repsAtMaxWeight: 0,
+            maxReps: 0,
+            weightAtMaxReps: 0,
+            oneRepMax: 0,
+            show1RM: false
         }
     },
     methods: {
@@ -237,6 +271,51 @@ export default defineComponent({
             this.exerciseid = template[0].exercises.id;
 
             this.workoutDescription = template[0].exercises.description;
+        },
+        async getExercisePRInformation() {
+            //get the exerciselog for the exerciseid
+
+            //this.id is the exerciselog exerciseid.
+
+            const { data, error } = await supabase
+                .from('exerciselog')
+                .select('id, reps, weight, repsinreserve')
+                .eq('exerciseid', this.exerciseid);
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const idOfMaxWeight = data.reduce((max, log) => {
+                return log.weight > max ? log.id : max;
+            }, 0);
+
+            const maxWeight = data.find(log => log.id === idOfMaxWeight)?.weight || null;
+            const reps = data.find(log => log.id === idOfMaxWeight)?.reps || null;
+            const rirOfMaxWeight = data.find(log => log.id === idOfMaxWeight)?.repsinreserve || null;
+
+            const idOfMaxReps = data.reduce((max, log) => {
+                return log.reps > max ? log.id : max;
+            }, 0);
+
+            const maxReps = data.find(log => log.id === idOfMaxReps)?.reps || null;
+            const weightAtMaxReps = data.find(log => log.id === idOfMaxReps)?.weight || null;
+
+            //calculate the 1RM based off the max weight and reps and the reps in reserve.
+
+            if (maxWeight && reps && rirOfMaxWeight) {
+                this.oneRepMax = maxWeight * (1 +(reps + rirOfMaxWeight)/30);
+
+                //round to the nearest kg
+
+                this.oneRepMax = Math.round(this.oneRepMax);
+            }
+            
+            this.maxWeight = maxWeight;
+            this.repsAtMaxWeight = reps;
+            this.maxReps = maxReps;
+            this.weightAtMaxReps = weightAtMaxReps;
         }
     },
     watch: {
@@ -262,6 +341,7 @@ export default defineComponent({
         this.isLoading = true;
         await this.loadExercise();
         await this.loadRestInterval();
+        await this.getExercisePRInformation();
         this.isLoading = false;
     }
 });
