@@ -118,6 +118,11 @@ export default defineComponent({
             //if the sets have ids, update the existing sets
 
             for (let i = 0; i < this.sets.length; i++) {
+
+                if (!this.sets[i].complete) {
+                    continue;
+                }
+
                 if (this.sets[i].id) {
                     const {error} = await supabase
                         .from('exerciselog')
@@ -197,7 +202,25 @@ export default defineComponent({
             const workoutStore = activeWorkoutStore();
 
             // workout has started, so load the saved sets
-            if (workoutStore.workoutState()) {              
+            if (workoutStore.workoutState()) { 
+                
+                //get the exericse id from the saved detail workout log:
+                const { data: exercise, error: exerciseError } = await supabase
+                .from('savedworkoutdetail')
+                .select(`
+                    id,
+                    exercises (description, id)`)
+                .eq('id', this.id);
+
+                if (exerciseError) {
+                    console.error(exerciseError);
+                    return;
+                }
+
+                this.exerciseid = exercise[0].exercises.id;  
+                this.workoutDescription = exercise[0].exercises.description;              
+
+
                 const { data: saved, error: saveError } = await supabase
                     .from('exerciselog')
                     .select(`
@@ -208,7 +231,7 @@ export default defineComponent({
                         repsinreserve,
                         weight,
                         complete`)
-                    .eq('exerciseid', this.id)
+                    .eq('exerciseid', this.exerciseid)
                     .eq('workoutid', workoutStore.getWorkoutId());
 
                 if (saveError) {
@@ -226,18 +249,6 @@ export default defineComponent({
                             rir: saved[i].repsinreserve
                         });
                     }
-
-                    const {data: exercise, error} = await supabase
-                        .from('exercises')
-                        .select('description')
-                        .eq('id', this.id);
-
-                    if (error) {
-                        console.error(error);
-                        return;
-                    }
-
-                    this.workoutDescription = exercise[0].description;
                     
                     return;                
                 }
