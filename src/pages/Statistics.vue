@@ -128,10 +128,34 @@ export default defineComponent({
                 return;
             }
 
-            this.setsPerMuscleGroup = data.map((d: any) => ({
+            if (!data) {
+                return;
+            }
+
+            const muslceGroups = data.map((d: any) => ({
                 muscleGroup: d.musclegroup_description,
                 sets: d.sets
             }));
+
+            //group each muslce group, and add up the sets
+
+            const muscleGroupSets = muslceGroups.reduce((acc: any, curr: any) => {
+                if (acc[curr.muscleGroup]) {
+                    acc[curr.muscleGroup] += curr.sets;
+                } else {
+                    acc[curr.muscleGroup] = curr.sets;
+                }
+                return acc;
+            }, {});
+
+            this.setsPerMuscleGroup = Object.entries(muscleGroupSets).map(([muscleGroup, sets]) => ({
+                muscleGroup,
+                sets
+            }));
+
+            //order by number of sets
+
+            this.setsPerMuscleGroup.sort((a, b) => b.sets - a.sets);
         }
     },
     async created() {
