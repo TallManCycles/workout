@@ -96,6 +96,7 @@ export default defineComponent({
             sets: [] as [],
             showTimer: false,
             restTimer: 90,
+            internalRestTimer: 90,
             timerInterval: 1000,
             isLoading: true,
             exerciseId: '',
@@ -160,6 +161,7 @@ export default defineComponent({
             this.$router.back()
         },
         startTimer() {
+            this.restTimer = this.internalRestTimer;
             this.showTimer = true;
         },
         addSet() {
@@ -188,6 +190,7 @@ export default defineComponent({
             }
 
             this.restTimer = data.restInterval;
+            this.internalRestTimer = data.restInterval;
         },
         async loadExercise() {
 
