@@ -25,7 +25,8 @@ export default {
     const fetchLogs = async () => {
       const { data, error } = await supabase
         .from('workout')
-        .select('date, description');
+        .select('date, description')
+        .order('date', { ascending: false });
 
       if (error) {
         console.error('Error fetching logs:', error);

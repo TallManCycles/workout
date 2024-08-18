@@ -84,7 +84,9 @@ export default defineComponent({
         async fetchWorkoutDescriptions() {
             const { data, error } = await supabase
                 .from('workout')
-                .select('id, description, date');
+                .select('id, description, date')
+                .order('date', { ascending: false });
+
 
             if (error) {
                 console.error(error);
