@@ -301,17 +301,80 @@ export default defineComponent({
                 return;
             }
 
-            const idOfMaxWeight = data.reduce((max, log) => {
-                return log.weight > max ? log.id : max;
-            }, 0);
+            console.log(data);
+
+                //return the id of the log with the highest weight
+                //here is a sample object:
+                //                 [
+                //     {
+                //         "id": 137,
+                //         "reps": 11,
+                //         "weight": 60,
+                //         "repsinreserve": 3
+                //     },
+                //     {
+                //         "id": 138,
+                //         "reps": 9,
+                //         "weight": 60,
+                //         "repsinreserve": 2
+                //     },
+                //     {
+                //         "id": 139,
+                //         "reps": 9,
+                //         "weight": 60,
+                //         "repsinreserve": 3
+                //     },
+                //     {
+                //         "id": 85,
+                //         "reps": 5,
+                //         "weight": 70,
+                //         "repsinreserve": 3
+                //     },
+                //     {
+                //         "id": 86,
+                //         "reps": 4,
+                //         "weight": 70,
+                //         "repsinreserve": 3
+                //     },
+                //     {
+                //         "id": 87,
+                //         "reps": 3,
+                //         "weight": 70,
+                //         "repsinreserve": 3
+                //     },
+                //     {
+                //         "id": 161,
+                //         "reps": 11,
+                //         "weight": 60,
+                //         "repsinreserve": 2
+                //     },
+                //     {
+                //         "id": 162,
+                //         "reps": 13,
+                //         "weight": 60,
+                //         "repsinreserve": 1
+                //     },
+                //     {
+                //         "id": 163,
+                //         "reps": 7,
+                //         "weight": 60,
+                //         "repsinreserve": 1
+                //     }
+                // ]
+
+                const idOfMaxWeight = data.reduce((maxLog, log) => {
+                    return log.weight > maxLog.weight ? log : maxLog;
+                }, data[0]).id;
 
             const maxWeight = data.find(log => log.id === idOfMaxWeight)?.weight || null;
             const reps = data.find(log => log.id === idOfMaxWeight)?.reps || null;
             const rirOfMaxWeight = data.find(log => log.id === idOfMaxWeight)?.repsinreserve || null;
 
-            const idOfMaxReps = data.reduce((max, log) => {
-                return log.reps > max ? log.id : max;
-            }, 0);
+            const idOfMaxReps = data.reduce((maxLog, log) => {
+                return log.reps > maxLog.reps ? log : maxLog;
+            }, data[0]).id;
+
+            console.log('id max weight: ' + idOfMaxWeight, 'id max reps: ' + idOfMaxReps, 'max weight: ' + maxWeight, 'reps: ' + reps, 'rir: ' + rirOfMaxWeight);
 
             const maxReps = data.find(log => log.id === idOfMaxReps)?.reps || null;
             const weightAtMaxReps = data.find(log => log.id === idOfMaxReps)?.weight || null;
