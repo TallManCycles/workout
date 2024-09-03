@@ -13,16 +13,16 @@
                         <v-list-item-subtitle>
                             <v-row>
                                 <v-col cols="3">
-                                    <v-checkbox v-model="set.complete" @click="startTimer"></v-checkbox>
+                                    <v-checkbox v-model="set.complete" @update:modelValue="startTimer(set)"></v-checkbox>
                                 </v-col>
                                 <v-col cols="3">
-                                    <v-text-field v-model="set.reps" label="Reps" type="number"></v-text-field>
+                                    <v-text-field ref="repsField" v-model="set.reps" label="Reps" type="number" :readonly="set.complete" :rules="[rules.required]"></v-text-field>
                                 </v-col>
                                 <v-col cols="3">
-                                    <v-text-field v-model="set.weight" label="Weight" type="number"></v-text-field>
+                                    <v-text-field v-model="set.weight" label="Weight" type="number" @update:modelValue="updateFutureWeights(set.weight)" :readonly="set.complete"></v-text-field>
                                 </v-col>
                                 <v-col cols="3">
-                                    <v-select v-model="set.rir" :items="[5, 4, 3, 2, 1, 0]" label="RIR"></v-select>
+                                    <v-select v-model="set.rir" :items="[5, 4, 3, 2, 1, 0]" label="RIR" @update:modelValue="updateFutureRIR(set.rir)" :readonly="set.complete"></v-select>
                                 </v-col>
                             </v-row>
                         </v-list-item-subtitle>
@@ -105,7 +105,10 @@ export default defineComponent({
             maxReps: 0,
             weightAtMaxReps: 0,
             oneRepMax: 0,
-            show1RM: false
+            show1RM: false,
+            rules: {
+                required: value => !!value || 'Reps are required',
+            },
         }
     },
     methods: {
@@ -165,9 +168,11 @@ export default defineComponent({
             //navigate back to the previous page
             this.$router.back()
         },
-        startTimer() {
-            this.restTimer = this.internalRestTimer;
-            this.showTimer = true;
+        startTimer(set) {
+            if (set.complete) {
+                this.showTimer = true;
+                this.restTimer = this.internalRestTimer;
+            }
         },
         addSet() {
             //add a new set that contains the same reps, weight, and rir as the last set
@@ -301,70 +306,9 @@ export default defineComponent({
                 return;
             }
 
-            console.log(data);
-
-                //return the id of the log with the highest weight
-                //here is a sample object:
-                //                 [
-                //     {
-                //         "id": 137,
-                //         "reps": 11,
-                //         "weight": 60,
-                //         "repsinreserve": 3
-                //     },
-                //     {
-                //         "id": 138,
-                //         "reps": 9,
-                //         "weight": 60,
-                //         "repsinreserve": 2
-                //     },
-                //     {
-                //         "id": 139,
-                //         "reps": 9,
-                //         "weight": 60,
-                //         "repsinreserve": 3
-                //     },
-                //     {
-                //         "id": 85,
-                //         "reps": 5,
-                //         "weight": 70,
-                //         "repsinreserve": 3
-                //     },
-                //     {
-                //         "id": 86,
-                //         "reps": 4,
-                //         "weight": 70,
-                //         "repsinreserve": 3
-                //     },
-                //     {
-                //         "id": 87,
-                //         "reps": 3,
-                //         "weight": 70,
-                //         "repsinreserve": 3
-                //     },
-                //     {
-                //         "id": 161,
-                //         "reps": 11,
-                //         "weight": 60,
-                //         "repsinreserve": 2
-                //     },
-                //     {
-                //         "id": 162,
-                //         "reps": 13,
-                //         "weight": 60,
-                //         "repsinreserve": 1
-                //     },
-                //     {
-                //         "id": 163,
-                //         "reps": 7,
-                //         "weight": 60,
-                //         "repsinreserve": 1
-                //     }
-                // ]
-
-                const idOfMaxWeight = data.reduce((maxLog, log) => {
-                    return log.weight > maxLog.weight ? log : maxLog;
-                }, data[0]).id;
+            const idOfMaxWeight = data.reduce((maxLog, log) => {
+                return log.weight > maxLog.weight ? log : maxLog;
+            }, data[0]).id;
 
             const maxWeight = data.find(log => log.id === idOfMaxWeight)?.weight || null;
             const reps = data.find(log => log.id === idOfMaxWeight)?.reps || null;
@@ -393,6 +337,25 @@ export default defineComponent({
             this.repsAtMaxWeight = reps;
             this.maxReps = maxReps;
             this.weightAtMaxReps = weightAtMaxReps;
+        },
+        updateFutureWeights(newWeight) {
+            //update the weights of the future sets to the new value that are not complete
+
+            console.log('updating future weights: ' + newWeight);
+
+            for (let i = 0; i < this.sets.length; i++) {
+                if (!this.sets[i].complete) {                    
+                    this.sets[i].weight = newWeight
+                }
+            }
+        },
+        updateFutureRIR(newRIR) {
+            //update the rir of the future sets that are not complete
+            for (let i = 1; i < this.sets.length; i++) {
+                if (!this.sets[i].complete) {
+                    this.sets[i].rir = newRIR;
+                }
+            }
         }
     },
     watch: {
