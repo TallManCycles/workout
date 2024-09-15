@@ -11,6 +11,12 @@
       <span>Stats</span>
     </v-btn>
 
+    <v-btn value="plus" to="/addexercise">
+      <v-icon>mdi-plus</v-icon>
+
+      <span>Add Exercise</span>
+    </v-btn>
+
     <v-btn value="workout" to="/workouts">
       <v-icon>mdi-dumbbell</v-icon>
 

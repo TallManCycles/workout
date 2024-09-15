@@ -1,3 +1,4 @@
+import path from 'path'
 import { createRouter } from 'vue-router'
 import { createWebHistory } from 'vue-router'
 
@@ -29,6 +30,11 @@ const routes = [
     name: 'exercise',
     component: () => import('../pages/Exercise.vue'),
     props: true
+  },
+  {
+    path: '/addexercise',
+    name: 'addexercise',
+    component: () => import('../pages/AddExercise.vue')
   },
   {
     path: '/settings',
