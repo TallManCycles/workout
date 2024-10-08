@@ -11,6 +11,7 @@
     "@mdi/font": "6.2.95",
     "@prisma/client": "^5.20.0",
     "@supabase/supabase-js": "^2.0.0",
+    "axios": "^1.7.7",
     "core-js": "^3.34.0",
     "dotenv": "^16.4.5",
     "pinia": "^2.2.1",
